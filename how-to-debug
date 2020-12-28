@@ -1,0 +1,25 @@
+# Build
+make BIND_DIR=. binary
+
+# Run in a root mode
+sudo ./bundles/binary-daemon/dockerd -D -l debug --pidfile /var/run/docker-debug.pid --data-root <some-folder> --host unix:///var/run/docker-debug.sock
+
+on a client `export DOCKER_HOST=unix:///var/run/docker-debug.sock`
+
+# Run in a rootless mode
+PATH=$PWD/bundles/binary-daemon:$PATH ./bundles/binary-daemon/dockerd-rootless.sh --experimental -D -l debug --data-root $HOME/tmp
+
+on a client export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock
+
+# Build for debugging
+make DOCKER_DEBUG=1 BUILDFLAGS="-gcflags=\"all=-Nl\"" BIND_DIR=. binary
+
+# Attach debugger (install https://github.com/go-delve/delve)
+
+dlv attach $(cat /run/user/1000/docker.pid)
+
+## set breakpoint
+(dlv) b github.com/docker/docker/daemon/images.(*ImageService).Images
+
+## continue
+c (continue), bt (trace)
