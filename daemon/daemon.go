@@ -1585,3 +1585,11 @@ func (daemon *Daemon) BuilderBackend() builder.Backend {
 		*images.ImageService
 	}{daemon, daemon.imageService}
 }
+
+func (daemon *Daemon) ReloadImageStore() error {
+	imageRoot := filepath.Join(daemon.root, "image", daemon.graphDrivers[runtime.GOOS])
+
+	logrus.Info("Reloading Image Store !!!")
+	return daemon.ImageService().ReloadImageStore(daemon.root, imageRoot, daemon.graphDrivers,
+		daemon.PluginStore, daemon.idMapping, daemon.configStore.GraphOptions, daemon.configStore.Experimental)
+}

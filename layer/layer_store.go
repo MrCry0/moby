@@ -614,7 +614,11 @@ func (ls *layerStore) ReleaseRWLayer(l RWLayer) ([]Metadata, error) {
 	}
 
 	if err := m.deleteReference(l); err != nil {
-		return nil, err
+		if err == ErrLayerNotRetained {
+			logrus.Warnf("Mounted layer is not referenced anymore: %s !!!", name)
+		} else {
+			return nil, err
+		}
 	}
 
 	if m.hasReferences() {
