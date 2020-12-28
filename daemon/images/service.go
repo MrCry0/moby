@@ -3,6 +3,7 @@ package images // import "github.com/docker/docker/daemon/images"
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/containerd/containerd/content"
@@ -20,6 +21,9 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+    refstore "github.com/docker/docker/reference"
+	"github.com/docker/docker/plugin"
+	"github.com/docker/docker/pkg/idtools"
 )
 
 type containerStore interface {
@@ -260,3 +264,56 @@ func (i *ImageService) UpdateConfig(maxDownloads, maxUploads *int) {
 		i.uploadManager.SetConcurrency(*maxUploads)
 	}
 }
+
+func (i *ImageService) ReloadImageStore(dataRoot string, imageRoot string, graphDrivers map[string]string,
+	pluginStore *plugin.Store, idMapping *idtools.IdentityMapping,
+	graphOptions []string, experimental bool) error {
+	var err error
+	layerStores := make(map[string]layer.Store)
+
+	for operatingSystem, gd := range graphDrivers {
+		layerStores[operatingSystem], err = layer.NewStoreFromOptions(layer.StoreOptions{
+			Root:                      dataRoot,
+			MetadataStorePathTemplate: filepath.Join(dataRoot, "image", "%s", "layerdb"),
+			GraphDriver:               gd,
+			GraphDriverOptions:        graphOptions,
+			IDMapping:                 idMapping,
+			PluginGetter:              pluginStore,
+			ExperimentalEnabled:       experimental,
+			OS:                        operatingSystem,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		// As layerstore initialization may set the driver
+		graphDrivers[operatingSystem] = layerStores[operatingSystem].DriverName()
+	}
+	i.layerStores = layerStores
+
+	ifs, err := image.NewFSStoreBackend(filepath.Join(imageRoot, "imagedb"))
+	if err != nil {
+		return err
+	}
+
+	lgrMap := make(map[string]image.LayerGetReleaser)
+	for los, ls := range i.layerStores {
+		lgrMap[los] = ls
+	}
+
+	imageStore, err := image.NewImageStore(ifs, lgrMap)
+	if err != nil {
+		return err
+	}
+	i.imageStore = imageStore
+
+	refStoreLocation := filepath.Join(imageRoot, `repositories.json`)
+	rs, err := refstore.NewReferenceStore(refStoreLocation)
+	if err != nil {
+		return err
+	}
+	i.referenceStore = rs
+	return nil
+}
+
