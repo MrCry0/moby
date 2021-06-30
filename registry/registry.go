@@ -181,7 +181,7 @@ func NewTransport(tlsConfig *tls.Config) *http.Transport {
 	}
 
 	direct := &net.Dialer{
-		Timeout:   30 * time.Second,
+		Timeout:   60 * time.Second,
 		KeepAlive: 30 * time.Second,
 		DualStack: true,
 	}
@@ -189,7 +189,7 @@ func NewTransport(tlsConfig *tls.Config) *http.Transport {
 	base := &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
 		DialContext:         direct.DialContext,
-		TLSHandshakeTimeout: 10 * time.Second,
+		TLSHandshakeTimeout: 60 * time.Second,
 		TLSClientConfig:     tlsConfig,
 		// TODO(dmcgowan): Call close idle connections when complete and use keep alive
 		DisableKeepAlives: true,

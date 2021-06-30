@@ -146,7 +146,7 @@ func v2AuthHTTPClient(endpoint *url.URL, authTransport http.RoundTripper, modifi
 
 	return &http.Client{
 		Transport: tr,
-		Timeout:   15 * time.Second,
+		Timeout:   60 * time.Second,
 	}, foundV2, nil
 
 }
@@ -211,7 +211,7 @@ func PingV2Registry(endpoint *url.URL, transport http.RoundTripper) (challenge.M
 
 	pingClient := &http.Client{
 		Transport: transport,
-		Timeout:   15 * time.Second,
+		Timeout:   60 * time.Second,
 	}
 	endpointStr := strings.TrimRight(endpoint.String(), "/") + "/v2/"
 	req, err := http.NewRequest(http.MethodGet, endpointStr, nil)
